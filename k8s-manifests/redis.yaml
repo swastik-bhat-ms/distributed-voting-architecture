@@ -1,0 +1,37 @@
+# ---------------------------------------------------------
+# 1. THE DEPLOYMENT (Running the Container)
+# ---------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-deployment
+spec:
+  replicas: 1              # How many pods to run
+  selector:
+    matchLabels:
+      app: redis           # This must match the label in the template below!
+  template:
+    metadata:
+      labels:
+        app: redis         # We are tagging this pod with the label "app: redis"
+    spec:
+      containers:
+      - name: redis-container
+        image: redis:alpine # We are pulling the official, lightweight Redis image from Docker Hub
+        ports:
+        - containerPort: 6379 # The default port Redis listens on
+
+---
+# ---------------------------------------------------------
+# 2. THE SERVICE (The Networking / DNS)
+# ---------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis              # This is VERY important. Other apps will use this exact name to connect!
+spec:
+  selector:
+    app: redis             # The Service looks for any pods tagged with "app: redis" to route traffic to
+  ports:
+  - port: 6379
+    targetPort: 6379

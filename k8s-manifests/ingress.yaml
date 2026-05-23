@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: project-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      # Rule 1: Route /dashboard to the Dashboard UI
+      - path: /dashboard(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: dashboard-service
+            port:
+              number: 5001
+              
+      # Rule 2: Route /api to the Dashboard Backend (for the live chart data)
+      - path: /()(api/.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: dashboard-service
+            port:
+              number: 5001
+              
+      # Rule 3: Route everything else to the Voting App (The Catch-All)
+      - path: /()(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: voting-app-service
+            port:
+              number: 5000

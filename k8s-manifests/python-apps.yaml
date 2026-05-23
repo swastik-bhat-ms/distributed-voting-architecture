@@ -1,0 +1,119 @@
+# ---------------------------------------------------------
+# 1. THE VOTING APP (Frontend)
+# ---------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: voting-app-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: voting-app
+  template:
+    metadata:
+      labels:
+        app: voting-app
+    spec:
+      containers:
+      - name: voting-app
+        image: my-voting-app:v3
+        ports:
+        - containerPort: 5000
+        resources:                   # <--- ADD EVERYTHING FROM HERE DOWN
+          requests:
+            cpu: "100m"              # Baseline: 10% of 1 CPU core
+            memory: "25Mi"           # Baseline: 25 Megabytes
+          limits:
+            cpu: "500m"              # Max: Half of 1 CPU core
+            memory: "50Mi"  
+        env:
+        - name: REDIS_HOST
+          value: "redis"             # Connects to the Redis service we made earlier
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: voting-app-service
+spec:
+  # type: LoadBalancer               # This exposes the app outside the cluster to your Windows browser
+  selector:
+    app: voting-app
+  ports:
+  - port: 5000
+    targetPort: 5000
+
+---
+# ---------------------------------------------------------
+# 2. THE WORKER (Background Logic)
+# ---------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+      - name: worker
+        image: my-worker:v1
+        command: ["python", "worker.py"]
+        env:
+        - name: REDIS_HOST
+          value: "redis"
+        - name: DB_HOST
+          value: "db"                # Connects to the Postgres service we made earlier
+        - name: DB_USER
+          value: "postgres"
+        - name: DB_PASS
+          value: "password"
+
+---
+# ---------------------------------------------------------
+# 3. THE DASHBOARD (Real-time UI)
+# ---------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard
+  template:
+    metadata:
+      labels:
+        app: dashboard
+    spec:
+      containers:
+      - name: dashboard
+        image: my-dashboard:v1
+        ports:
+        - containerPort: 5001
+        env:
+        - name: DB_HOST
+          value: "db"
+        - name: DB_USER
+          value: "postgres"
+        - name: DB_PASS
+          value: "password"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard-service
+spec:
+  # type: LoadBalancer
+  selector:
+    app: dashboard
+  ports:
+  - port: 5001
+    targetPort: 5001

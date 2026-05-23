@@ -1,0 +1,44 @@
+# ---------------------------------------------------------
+# 1. THE DEPLOYMENT (The Database Engine)
+# ---------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres-container
+        image: postgres:13-alpine    # We are using a lightweight Alpine version of Postgres
+        ports:
+        - containerPort: 5432        # The default port Postgres listens on
+        env:                         # Injecting credentials as environment variables
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "password"
+        - name: POSTGRES_DB
+          value: "postgres"
+
+---
+# ---------------------------------------------------------
+# 2. THE SERVICE (The Internal Network Name)
+# ---------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: db                           # We are naming this service "db"
+spec:
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
